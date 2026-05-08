@@ -23,9 +23,9 @@ class MLP:
             self.h.append(relu(self.f[i-1])) # dim R^D_i x 1
             self.f.append(self.b[i] + self.W[i] @ self.h[i]) # dim R^D_i+1 x 1
 
-        return self.f[-1]
+        return self.f[-1] # model's prediction for regression
 
-    def backward_pass(self, x: pd.Series, y: pd.Series):
+    def backward_pass(self, x: np.array, y: pd.Series):
         self.dLdf = [self.forward_pass(x) - y]
         self.dLdh = [self.W[-1].T @ self.dLdf[-1]]
         self.dLdW = [np.outer(self.dLdf[-1], self.h[-1])]
@@ -36,20 +36,36 @@ class MLP:
             self.dLdW.append(np.outer(self.dLdf[-1], self.h[i]))      
             self.dLdb.append(self.dLdf[-1])
         
-        self.dLdW.reverse() # [dLdW0, ..., dLdWd]
-        self.dLdb.reverse() # [dLdb0, ..., dLdbd]
+        self.dLdW.reverse() # [dL/dW0, ..., dL/dWd]
+        self.dLdb.reverse() # [dL/db0, ..., dL/dbd]
 
         return self.dLdW, self.dLdb 
 
-    def grad_descent():
-        pass
+    # vanilla GD
+    def fit(self, X: pd.DataFrame, y: pd.Series, epochs: int, learning: float): 
+        for i in range(epochs): 
+            print(f"Epoch {i+1}...")
+            avg_dLdW, avgdLdB = self.backward_pass(X.iloc[0, :], y[0])
+            batch_size = len(X)
+            for i in range(1, batch_size):
+                wrtW, wrtb = self.backward_pass(X.iloc[i, :], y[i])
+                for j in range(0, len(avg_dLdW)):
+                    avg_dLdW[j] += wrtW[j]
+                    avgdLdB[j] += wrtb[j]
+            
+            for i in range(0, len(avg_dLdW)):
+                avg_dLdW[i] /= batch_size
+                avgdLdB[i] /= batch_size
 
-    def fit():
-        pass
+            for i in range(0, len(avg_dLdW)):
+                self.W[i] -= learning * avg_dLdW[i]
+                self.b[i] -= learning * avgdLdB[i]
 
-    def predict():
+    def predict(X: pd.DataFrame):
         pass
 
 if __name__ == "__main__":
+    X = pd.read_csv("data.csv")[["x1", "x2"]]
+    y = pd.read_csv("data.csv")["y"]
     net = MLP(2, 10, 10, 1)
-    print(net.backward_pass(np.array([2, 4]), [2]))
+    net.fit(X, y, 10, 0.01)

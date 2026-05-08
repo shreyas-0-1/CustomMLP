@@ -12,6 +12,3 @@ def softmax(x: np.array) -> np.array:
     sum = np.sum(np.e ** x)
     x = np.e ** x / sum
     return x
-
-x = np.array([0, 0, 4, 5, 0, 2])
-print(relu_derivative(x))
