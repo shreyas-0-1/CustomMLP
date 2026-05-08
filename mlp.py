@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from activations import relu, relu_derivative
+from loss import l2_loss
 
 class MLP:
     def __init__(self, features: int, width: int, depth: int, output = 1):
@@ -43,12 +44,12 @@ class MLP:
 
     # vanilla GD
     def fit(self, X: pd.DataFrame, y: pd.Series, epochs: int, learning: float): 
-        for i in range(epochs): 
-            print(f"Epoch {i+1}...")
-            avg_dLdW, avgdLdB = self.backward_pass(X.iloc[0, :], y[0])
+        for a in range(epochs): 
+            print(f"Epoch {a+1}...")
+            avg_dLdW, avgdLdB = self.backward_pass(X.iloc[0, :], y.iloc[0])
             batch_size = len(X)
             for i in range(1, batch_size):
-                wrtW, wrtb = self.backward_pass(X.iloc[i, :], y[i])
+                wrtW, wrtb = self.backward_pass(X.iloc[i, :], y.iloc[i])
                 for j in range(0, len(avg_dLdW)):
                     avg_dLdW[j] += wrtW[j]
                     avgdLdB[j] += wrtb[j]
@@ -61,11 +62,34 @@ class MLP:
                 self.W[i] -= learning * avg_dLdW[i]
                 self.b[i] -= learning * avgdLdB[i]
 
-    def predict(X: pd.DataFrame):
-        pass
+    def predict(self, X: pd.DataFrame):
+        y = []
+        for i in range(len(X)):
+            y.append(self.forward_pass(X.iloc[i, :]))
+        return np.array(y)
+
 
 if __name__ == "__main__":
-    X = pd.read_csv("data.csv")[["x1", "x2"]]
-    y = pd.read_csv("data.csv")["y"]
-    net = MLP(2, 10, 10, 1)
-    net.fit(X, y, 10, 0.01)
+    import matplotlib.pyplot as plt
+
+    data = pd.read_csv("data.csv")
+    train_X = data[["x1", "x2"]].iloc[0:400, :]
+    test_X = data[["x1", "x2"]].iloc[400:500, :]
+    test_y = data["y"].iloc[400:500]
+    train_y = data["y"].iloc[0:400]
+
+    width = np.arange(10, 100, 5)
+    l2_loss_width = []
+    for vals in width:
+        net = MLP(2, vals, 30, 1)
+        net.fit(train_X, train_y, 20, 0.001)
+        predictions = net.predict(test_X)
+        l2_loss_width.append(l2_loss(np.array(test_y), predictions))
+        del net
+
+    plt.plot(width, l2_loss_width, color="red")
+    plt.xlabel("width (neurons per layer)")
+    plt.xlabel("loss (L2)")
+    plt.title("Width vs Loss in MLP")
+    plt.show()
+    
